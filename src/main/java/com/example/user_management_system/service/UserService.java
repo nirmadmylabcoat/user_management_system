@@ -1,28 +1,48 @@
 package com.example.user_management_system.service;
 
 import com.example.user_management_system.model.User;
+import com.example.user_management_system.repository.UserRepository;
 import org.springframework.stereotype.Service;
-import java.util.*;
 
-@Service //spring automatically considers it as a service component
+import java.util.List;
+
+@Service
 public class UserService {
-    private List<User> users = new ArrayList<>(Arrays.asList
-            (new User(1, "Sanjana", "sanjanaxrx@gmail.com", 21),
-             new User(2, "Shivam", "shivamsultaniy123@gmail.com", 20)));
 
-    public List<User> getAllUsers()
-    {
-        return users;
+    //creates an object of the user-repository
+    private final UserRepository repo;
+
+    //constructor
+    public UserService(UserRepository repo) {
+        this.repo = repo;
     }
 
-    public User getUserById(int id)
-    {
-        //find the first match else return null
-        return users.stream().filter(u -> u.getId() == id).findFirst().orElse(null);
+    //basic querying functions using user-repo interface
+    public List<User> getAllUsers() {
+        return repo.findAll();
     }
 
-    public void addUser(User user)
-    {
-        users.add(user);
+    public User getUserById(int id) {
+        return repo.findById(id).orElse(null);
+    }
+
+    public User addUser(User user) {
+        // If client doesn’t send id, Mongo will generate one and to the database
+        return repo.save(user);
+    }
+
+    public User updateUser(int id, User updated) { //get the name, email, age from the "updated" user and set the original/existing one's fields
+        return repo.findById(id).map(existing -> { //if value exits, map applies the (lambda) given function to it
+            existing.setName(updated.getName());
+            existing.setEmail(updated.getEmail());
+            existing.setAge(updated.getAge());
+            return repo.save(existing);
+        }).orElse(null);
+    }
+
+    public boolean deleteUser(int id) {
+        if (!repo.existsById(id)) return false;
+        repo.deleteById(id);
+        return true;
     }
 }

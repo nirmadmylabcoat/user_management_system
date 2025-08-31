@@ -2,53 +2,47 @@ package com.example.user_management_system.controller;
 
 import com.example.user_management_system.model.User;
 import com.example.user_management_system.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.*;
+
+import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
 
-    @Autowired //dependency injection
-    private UserService userService;
+    private final UserService service;
+    public UserController(UserService service) { this.service = service; }
 
     @GetMapping
-    public List<User> getUsers() {
-        return userService.getAllUsers();
+    public List<User> getAll() {
+        return service.getAllUsers();
     }
 
     @GetMapping("/{id}")
-    public User getUser(@PathVariable int id) {
-        return userService.getUserById(id);
+    public ResponseEntity<User> getById(@PathVariable int id) {
+        User u = service.getUserById(id);
+        return (u == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(u); //404 or 200
     }
 
     @PostMapping
-    public void addUser(@RequestBody User user) {
-        userService.addUser(user);
+    public ResponseEntity<User> create(@Valid @RequestBody User user) {
+        User saved = service.addUser(user);
+        return ResponseEntity.created(URI.create("/users/" + saved.getId())).body(saved);
+        //201 created page and create the location. body(saved) adds the user saved to the json body
     }
 
     @PutMapping("/{id}")
-    public String updateUser(@PathVariable int id, @RequestBody User updatedUser) {
-        for (User user : userService.getAllUsers()) {
-            if (user.getId() == id) {
-                user.setName(updatedUser.getName());
-                user.setEmail(updatedUser.getEmail());
-                return "User updated successfully!";
-            }
-        }
-        return "User not found!";
+    public ResponseEntity<User> update(@PathVariable int id, @Valid @RequestBody User user) {
+        User updated = service.updateUser(id, user);
+        return (updated == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(updated); //404 or 200
     }
 
     @DeleteMapping("/{id}")
-    public String deleteUser(@PathVariable int id) {
-        for(User user : userService.getAllUsers())
-        {
-            if (user.getId() == id) {
-                userService.getAllUsers().remove(user);
-                return "User deleted successfully!";
-            }
-        }
-        return "User not found!";
+    public ResponseEntity<Void> delete(@PathVariable int id) {
+        return service.deleteUser(id) ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build(); //204 or 404
     }
 }
